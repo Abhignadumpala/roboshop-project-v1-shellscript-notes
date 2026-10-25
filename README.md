@@ -61,7 +61,7 @@
 ## Repository structure
 
 ```
-roboshop-project-v1-shellscript/
+roboshop-project-v1-shellscript-notes/
 ├── 00-common-part.md      # common part of every script, explained once
 ├── roboshop.sh            # laptop: create EC2 instances + Route 53 records
 ├── roboshop.sh.md         #   ↳ explanation of roboshop.sh, block by block
