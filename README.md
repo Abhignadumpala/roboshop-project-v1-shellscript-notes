@@ -10,6 +10,8 @@
 
 ![RoboShop architecture](docs/images/architecture.png)
 
+![Who calls whom: every RoboShop server, its port and who it connects to](docs/images/who-calls-whom.svg)
+
 ---
 
 ## Table of Contents
