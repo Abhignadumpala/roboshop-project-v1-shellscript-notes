@@ -81,12 +81,14 @@ roboshop-project-v1-shellscript-notes/
 ├── 06-user.sh.md          #   ↳ explanation of 06-user.sh, block by block
 ├── 07-cart.sh             # cart server
 ├── 07-cart.sh.md          #   ↳ explanation of 07-cart.sh, block by block
-├── 08-shipping.sh.md      # shipping: explanation (script next)
+├── 08-shipping.sh         # shipping server (Java + Maven + MySQL data)
+├── 08-shipping.sh.md      #   ↳ explanation of 08-shipping.sh, block by block
 ├── mongo.repo             # MongoDB 7.0 repo (server + mongosh client)
 ├── rabbitmq.repo          # Erlang + RabbitMQ repos
 ├── catalogue.service      # systemd unit with a DOMAIN_NAME placeholder
 ├── user.service           # systemd unit: REDIS_URL + MONGO_URL
 ├── cart.service           # systemd unit: REDIS_HOST + CATALOGUE_HOST
+├── shipping.service       # systemd unit: CART_ENDPOINT + DB_HOST + DB user
 └── docs/
     ├── scripts-walkthrough.md   # how every script works, line by line
     ├── troubleshooting.md       # problems I hit + fixes
@@ -107,6 +109,7 @@ roboshop-project-v1-shellscript-notes/
 | [05-catalogue.sh](05-catalogue.sh) | catalogue | Node.js 24 → app user → download + unzip code → `npm install` → systemd service → load products |
 | [06-user.sh](06-user.sh) | user | Node.js 24 → app user → code → `npm install` → `user.service` (Redis + MongoDB) → restart |
 | [07-cart.sh](07-cart.sh) | cart | Node.js 24 → app user → code → `npm install` → `cart.service` (Redis + catalogue) → restart |
+| [08-shipping.sh](08-shipping.sh) | shipping | Java 25 + Maven → `mvn clean package` → MySQL client → cities loaded **only if count is 0** → app DB user → `shipping.service` → restart |
 
 ---
 
@@ -122,7 +125,7 @@ roboshop-project-v1-shellscript-notes/
 | 05 | [05-catalogue.sh](05-catalogue.sh) | Catalogue | ✅ Done: `/health` OK, 11 products, re-run safe | 63 s | [📖 notes](05-catalogue.sh.md) |
 | 06 | [06-user.sh](06-user.sh) | User | ✅ Done: `/health` mongo + redis true | 109 s | [📖 notes](06-user.sh.md) |
 | 07 | [07-cart.sh](07-cart.sh) | Cart | ✅ Done: `/health` redis true, telnet catalogue:8080 Connected | 99 s | [📖 notes](07-cart.sh.md) |
-| 08 | | Shipping (Java + MySQL data) | ⏭️ Next | | [📖 notes](08-shipping.sh.md) |
+| 08 | [08-shipping.sh](08-shipping.sh) | Shipping (Java + MySQL data) | ⏳ Script pushed, server created, run next | | [📖 notes](08-shipping.sh.md) |
 | 09–11 | | Payment, Dispatch, Frontend | ⏭️ Planned | | |
 | - | | `common.sh` (shared functions) | ⏭️ Planned | | |
 
@@ -280,7 +283,7 @@ echo "$(timestamp) [INFO] script completed in $SECONDS seconds" | tee -a $logs_f
 | **Validation** | `validate $? "<step>"` after each step | Stop at the first failure with a clear message |
 | **Logging** | `&>> $logs_file`, `tee -a`, `[INFO]`/`[ERROR]`, timestamps | Screen stays clean; full output kept for debugging; `grep ERROR` works |
 | **Timing** | `$SECONDS` | Measured run time per script |
-| **Idempotency** | `id roboshop` / `rabbitmqctl list_users \| grep -qw roboshop` → create or **SKIPPING**; `rm -rf /app/*` before unzip; `countDocuments()` → load products only if `0` | Same result no matter how many times I run it |
+| **Idempotency** | `id roboshop` / `rabbitmqctl list_users \| grep -qw roboshop` → create or **SKIPPING**; `rm -rf /app` before unzip; `countDocuments()` / `SELECT COUNT(*)` → load data only if empty or `0` | Same result no matter how many times I run it |
 | **Own files after `cd`** | `scripts_dir=$(dirname "$(realpath "$0")")` at the top, `cp $scripts_dir/catalogue.service ...` | `cd /app` would make relative paths fail; works from any folder |
 | **Restart at the end** | `systemctl restart <service>` + `validate $?` | `start` ignores changes if the service is already running |
 | **Placeholders** | `mongodb.DOMAIN_NAME` in the unit file + `sed -i "s/DOMAIN_NAME/$domain_name/"` on the **copy** | Domain set in one variable; repo file stays unchanged |
@@ -322,7 +325,7 @@ Each script is explained block by block in `<script>.sh.md`, right below it (e.g
 | `script completed in  seconds` | `$seconds` instead of the built-in `$SECONDS` | Bash is case-sensitive |
 | Old AMI / SG IDs from class not found | IDs belong to another account or were deregistered | Use my own AMI ID and SG **names** |
 
-All 17 with details: [docs/troubleshooting.md](docs/troubleshooting.md)
+All 25 with details: [docs/troubleshooting.md](docs/troubleshooting.md)
 
 ---
 
