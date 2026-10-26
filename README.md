@@ -295,6 +295,8 @@ Each script is explained block by block in `<script>.sh.md`, right below it (e.g
 
 ## Verify each component
 
+![App servers 06–08: the connections I checked](docs/images/06-08-app-connections-verified.png)
+
 | Server | Command | Expected |
 |--------|---------|----------|
 | mongodb | `ss -lntp \| grep 27017` | `0.0.0.0:27017` |
