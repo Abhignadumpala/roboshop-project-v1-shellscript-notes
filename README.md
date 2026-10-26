@@ -77,9 +77,16 @@ roboshop-project-v1-shellscript-notes/
 ├── 04-rabbitmq.sh.md      #   ↳ explanation of 04-rabbitmq.sh, block by block
 ├── 05-catalogue.sh        # catalogue server
 ├── 05-catalogue.sh.md     #   ↳ explanation of 05-catalogue.sh, block by block
+├── 06-user.sh             # user server
+├── 06-user.sh.md          #   ↳ explanation of 06-user.sh, block by block
+├── 07-cart.sh             # cart server
+├── 07-cart.sh.md          #   ↳ explanation of 07-cart.sh, block by block
+├── 08-shipping.sh.md      # shipping: explanation (script next)
 ├── mongo.repo             # MongoDB 7.0 repo (server + mongosh client)
 ├── rabbitmq.repo          # Erlang + RabbitMQ repos
 ├── catalogue.service      # systemd unit with a DOMAIN_NAME placeholder
+├── user.service           # systemd unit: REDIS_URL + MONGO_URL
+├── cart.service           # systemd unit: REDIS_HOST + CATALOGUE_HOST
 └── docs/
     ├── scripts-walkthrough.md   # how every script works, line by line
     ├── troubleshooting.md       # problems I hit + fixes
@@ -98,6 +105,8 @@ roboshop-project-v1-shellscript-notes/
 | [03-mysql.sh](03-mysql.sh) | mysql | MySQL 8.4 → enable/start → root password → fix `root@localhost` → **login check** |
 | [04-rabbitmq.sh](04-rabbitmq.sh) | rabbitmq | Repo → Erlang + RabbitMQ → enable/start → app user (**skips if it exists**) → permissions |
 | [05-catalogue.sh](05-catalogue.sh) | catalogue | Node.js 24 → app user → download + unzip code → `npm install` → systemd service → load products |
+| [06-user.sh](06-user.sh) | user | Node.js 24 → app user → code → `npm install` → `user.service` (Redis + MongoDB) → restart |
+| [07-cart.sh](07-cart.sh) | cart | Node.js 24 → app user → code → `npm install` → `cart.service` (Redis + catalogue) → restart |
 
 ---
 
@@ -111,8 +120,10 @@ roboshop-project-v1-shellscript-notes/
 | 03 | [03-mysql.sh](03-mysql.sh) | MySQL 8.4.11 | ✅ Done (+ root@localhost bug found and fixed) | 40 s | [📖 notes](03-mysql.sh.md) |
 | 04 | [04-rabbitmq.sh](04-rabbitmq.sh) | RabbitMQ | ✅ Done, re-run safe | 36 s (re-run: 86 s, SKIPPING the user) | [📖 notes](04-rabbitmq.sh.md) |
 | 05 | [05-catalogue.sh](05-catalogue.sh) | Catalogue | ✅ Done: `/health` OK, 11 products, re-run safe | 63 s | [📖 notes](05-catalogue.sh.md) |
-| 06 | | User | ⏭️ Next | | |
-| 07–10 | | Cart, Shipping, Payment, Frontend | ⏭️ Planned | | |
+| 06 | [06-user.sh](06-user.sh) | User | ✅ Done: `/health` mongo + redis true | 109 s | [📖 notes](06-user.sh.md) |
+| 07 | [07-cart.sh](07-cart.sh) | Cart | ✅ Done: `/health` redis true, telnet catalogue:8080 Connected | 99 s | [📖 notes](07-cart.sh.md) |
+| 08 | | Shipping (Java + MySQL data) | ⏭️ Next | | [📖 notes](08-shipping.sh.md) |
+| 09–11 | | Payment, Dispatch, Frontend | ⏭️ Planned | | |
 | - | | `common.sh` (shared functions) | ⏭️ Planned | | |
 
 ---
@@ -270,7 +281,7 @@ echo "$(timestamp) [INFO] script completed in $SECONDS seconds" | tee -a $logs_f
 | **Logging** | `&>> $logs_file`, `tee -a`, `[INFO]`/`[ERROR]`, timestamps | Screen stays clean; full output kept for debugging; `grep ERROR` works |
 | **Timing** | `$SECONDS` | Measured run time per script |
 | **Idempotency** | `id roboshop` / `rabbitmqctl list_users \| grep -qw roboshop` → create or **SKIPPING**; `rm -rf /app/*` before unzip; `countDocuments()` → load products only if `0` | Same result no matter how many times I run it |
-| **Own files after `cd`** | `script_dir=$(dirname "$(realpath "$0")")` at the top, `cp $script_dir/catalogue.service ...` | `cd /app` would make relative paths fail; works from any folder |
+| **Own files after `cd`** | `scripts_dir=$(dirname "$(realpath "$0")")` at the top, `cp $scripts_dir/catalogue.service ...` | `cd /app` would make relative paths fail; works from any folder |
 | **Restart at the end** | `systemctl restart <service>` + `validate $?` | `start` ignores changes if the service is already running |
 | **Placeholders** | `mongodb.DOMAIN_NAME` in the unit file + `sed -i "s/DOMAIN_NAME/$domain_name/"` on the **copy** | Domain set in one variable; repo file stays unchanged |
 | **Validate the result** | `mysql -uroot -p... -e "SELECT VERSION();"` after setting the password | An exit code of 0 doesn't prove the password works (see bug below) |
@@ -289,6 +300,8 @@ Each script is explained block by block in `<script>.sh.md`, right below it (e.g
 | rabbitmq | `rabbitmqctl list_users` | `roboshop` listed |
 | catalogue | `curl localhost:8080/health` | `{"app":"OK","mongo":true}` |
 | catalogue | `curl localhost:8080/products` | 11 products |
+| user | `curl localhost:8080/health` | `{"app":"OK","mongo":true,"redis":true}` |
+| cart | `curl localhost:8080/health` | `{"app":"OK","redis":true}` |
 
 ![catalogue health and products](docs/images/handson/05-catalogue-run-health-products.png)
 
@@ -301,7 +314,7 @@ Each script is explained block by block in `<script>.sh.md`, right below it (e.g
 | `ERROR 1045 Access denied for 'root'@'localhost'` although the script said SUCCESS | `mysql_secure_installation --set-root-pass` set the password only on `root@'%'`; `root@localhost` stayed **empty** (proved via `mysql.user`) | `ALTER USER 'root'@'localhost' ...` + a **login-check** step in the script |
 | Re-running `04-rabbitmq.sh` failed at `add_user` | User already exists → non-zero exit → validate stops | Check first with `grep -qw`, else **SKIPPING** (tested: 2nd run passes) |
 | Re-running `05-catalogue.sh` looked frozen | `unzip` asked "replace?" with output hidden in the log | `rm -rf /app/*` before unzip |
-| `cp catalogue.service` → No such file | Ran after `cd /app` | `script_dir=$(dirname "$(realpath "$0")")` at the top |
+| `cp catalogue.service` → No such file | Ran after `cd /app` | `scripts_dir=$(dirname "$(realpath "$0")")` at the top |
 | 2nd run would load products twice | `master-data.js` ran every time | `countDocuments()` → load only if `0`, else **SKIPPING** |
 | Re-run ignored a changed service file | `systemctl start` does nothing on a running service | End with `systemctl restart catalogue` + `validate` |
 | `sed: unterminated 's' command` | Missing the 3rd `/` | `"s/DOMAIN_NAME/$domain_name/"` |
@@ -355,7 +368,8 @@ Full guide: [docs/debugging-guide.md](docs/debugging-guide.md)
 
 ## What's next
 
-- [ ] `06-user.sh`, `07-cart.sh`, `08-shipping.sh`, `09-payment.sh`, `10-frontend.sh`
+- [x] `06-user.sh`, `07-cart.sh`
+- [ ] `08-shipping.sh`, `09-payment.sh`, `10-dispatch.sh`, `11-frontend.sh`
 - [ ] Move the shared header and functions into `common.sh`
 - [ ] Practice debugging by breaking things on purpose (SG rule, stopped service, wrong DNS name)
 
@@ -365,7 +379,7 @@ Full guide: [docs/debugging-guide.md](docs/debugging-guide.md)
 
 | Doc | What's inside |
 |-----|---------------|
-| [Server notes](00-common-part.md) | **One note per script**: [roboshop.sh](roboshop.sh.md) · [mongodb](01-mongodb.sh.md) · [redis](02-redis.sh.md) · [mysql](03-mysql.sh.md) · [rabbitmq](04-rabbitmq.sh.md) · [catalogue](05-catalogue.sh.md) |
+| [Server notes](00-common-part.md) | **One note per script**: [roboshop.sh](roboshop.sh.md) · [mongodb](01-mongodb.sh.md) · [redis](02-redis.sh.md) · [mysql](03-mysql.sh.md) · [rabbitmq](04-rabbitmq.sh.md) · [catalogue](05-catalogue.sh.md) · [user](06-user.sh.md) · [cart](07-cart.sh.md) · [shipping](08-shipping.sh.md) |
 | [Scripts walkthrough](docs/scripts-walkthrough.md) | Every script explained, with run screenshots |
 | [Troubleshooting](docs/troubleshooting.md) | Problems I hit, causes, fixes |
 | [Debugging guide](docs/debugging-guide.md) | Which error → what to check, logs per server, real class errors |
