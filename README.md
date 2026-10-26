@@ -125,7 +125,7 @@ roboshop-project-v1-shellscript-notes/
 | 05 | [05-catalogue.sh](05-catalogue.sh) | Catalogue | ✅ Done: `/health` OK, 11 products, re-run safe | 63 s | [📖 notes](05-catalogue.sh.md) |
 | 06 | [06-user.sh](06-user.sh) | User | ✅ Done: `/health` mongo + redis true | 109 s | [📖 notes](06-user.sh.md) |
 | 07 | [07-cart.sh](07-cart.sh) | Cart | ✅ Done: `/health` redis true, telnet catalogue:8080 Connected | 99 s | [📖 notes](07-cart.sh.md) |
-| 08 | [08-shipping.sh](08-shipping.sh) | Shipping (Java + MySQL data) | ⏳ Script pushed, server created, run next | | [📖 notes](08-shipping.sh.md) |
+| 08 | [08-shipping.sh](08-shipping.sh) | Shipping (Java + MySQL data) | ✅ Done: health UP (db UP), 948,833 cities | 216 s | [📖 notes](08-shipping.sh.md) |
 | 09–11 | | Payment, Dispatch, Frontend | ⏭️ Planned | | |
 | - | | `common.sh` (shared functions) | ⏭️ Planned | | |
 
@@ -305,6 +305,8 @@ Each script is explained block by block in `<script>.sh.md`, right below it (e.g
 | catalogue | `curl localhost:8080/products` | 11 products |
 | user | `curl localhost:8080/health` | `{"app":"OK","mongo":true,"redis":true}` |
 | cart | `curl localhost:8080/health` | `{"app":"OK","redis":true}` |
+| shipping | `curl localhost:8080/actuator/health` | `"status":"UP"` (db UP) |
+| shipping | `curl localhost:8080/count` | `948833` |
 
 ![catalogue health and products](docs/images/handson/05-catalogue-run-health-products.png)
 
@@ -372,7 +374,8 @@ Full guide: [docs/debugging-guide.md](docs/debugging-guide.md)
 ## What's next
 
 - [x] `06-user.sh`, `07-cart.sh`
-- [ ] `08-shipping.sh`, `09-payment.sh`, `10-dispatch.sh`, `11-frontend.sh`
+- [x] `08-shipping.sh`
+- [ ] `09-payment.sh`, `10-dispatch.sh`, `11-frontend.sh`
 - [ ] Move the shared header and functions into `common.sh`
 - [ ] Practice debugging by breaking things on purpose (SG rule, stopped service, wrong DNS name)
 
