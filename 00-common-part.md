@@ -114,6 +114,17 @@ id roboshop
 
 **Why check first?** `useradd roboshop` a 2nd time fails with `user 'roboshop' already exists`, so `validate` would stop the script with **FAILED**. The check makes the script **idempotent**: run it many times, same result, no errors.
 
+> **Idempotent** = you can run it many times and get the same result, with no errors and nothing duplicated.
+>
+> | Run | Not idempotent (`useradd` only) | Idempotent (`id` check first) |
+> |-----|----------------------------------|-------------------------------|
+> | 1st | user created ✅ | user created ✅ |
+> | 2nd | `user already exists` → **FAILED**, script stops ❌ | **SKIPPING**, script continues ✅ |
+>
+> Idempotent checks in my scripts: `id roboshop` before `useradd` · `mkdir -p` · `rabbitmqctl list_users \| grep -qw` before `add_user` · count check before loading products / cities · `rm -rf /app` before unzip.
+>
+> Real tools like **Ansible** and **Terraform** are idempotent by design. In Bash I write every check myself.
+
 **Why not run the app as root?** If someone breaks into the app, they only get the limited `roboshop` user, not root. This is called **least privilege**.
 
 **Try it:** `id roboshop; echo $?` → `0` if it exists, `1` if not.
