@@ -53,7 +53,7 @@
 | Cloud | AWS EC2 (`t3.micro`, RHEL 9), Route 53, Security Groups |
 | Automation | Bash, AWS CLI (`run-instances`, `wait`, `describe-instances`, `change-resource-record-sets`), JMESPath `--query` |
 | Web / proxy | Nginx (reverse proxy for `/api/*`) |
-| App services | Node.js 24 (catalogue, user, cart, payment), Java (shipping), dispatch |
+| App services | Node.js 24 (catalogue, user, cart), Java 25 (shipping), Python 3.14 + gunicorn (payment), dispatch |
 | Databases / queue | MongoDB 7.0, Redis 7, MySQL 8.4, RabbitMQ |
 | Linux | `dnf` modules, systemd units, `sed`, users, logs |
 | Source control | Git + GitHub (laptop → GitHub → each server) |
@@ -77,6 +77,8 @@ roboshop-project-v1-shellscript-notes/
 ├── 06-user/                   # 06-user.sh · user.service · README.md
 ├── 07-cart/                   # 07-cart.sh · cart.service · README.md
 ├── 08-shipping/               # 08-shipping.sh · shipping.service · README.md
+├── 09-payment/                # 09-payment.sh · payment.service · README.md
+├── 10-frontend/               # 10-frontend.sh · roboshop.conf (nginx) · README.md
 └── docs/
     ├── scripts-walkthrough.md   # how every script works, line by line
     ├── troubleshooting.md       # problems I hit + fixes
@@ -101,6 +103,8 @@ roboshop-project-v1-shellscript-notes/
 | [06-user.sh](06-user/06-user.sh) | user | Node.js 24 → app user → code → `npm install` → `user.service` (Redis + MongoDB) → restart |
 | [07-cart.sh](07-cart/07-cart.sh) | cart | Node.js 24 → app user → code → `npm install` → `cart.service` (Redis + catalogue) → restart |
 | [08-shipping.sh](08-shipping/08-shipping.sh) | shipping | Java 25 + Maven → `mvn clean package` → MySQL client → cities loaded **only if count is 0** → app DB user → `shipping.service` → restart |
+| [09-payment.sh](09-payment/09-payment.sh) | payment | Python 3.14 → app user → code → **venv** + `pip install -r requirements.txt` → `payment.service` (gunicorn; cart, user, RabbitMQ) → restart |
+| [10-frontend.sh](10-frontend/10-frontend.sh) | frontend | Nginx 1.26 → web pages → `roboshop.conf` (reverse proxy `/api/*`) → **`nginx -t`** → restart |
 
 ---
 
@@ -117,7 +121,9 @@ roboshop-project-v1-shellscript-notes/
 | 06 | [06-user.sh](06-user/06-user.sh) | User | ✅ Done: `/health` mongo + redis true | 109 s | [📖 notes](06-user/README.md) |
 | 07 | [07-cart.sh](07-cart/07-cart.sh) | Cart | ✅ Done: `/health` redis true, telnet catalogue:8080 Connected | 99 s | [📖 notes](07-cart/README.md) |
 | 08 | [08-shipping.sh](08-shipping/08-shipping.sh) | Shipping (Java + MySQL data) | ✅ Done: health UP (db UP), 948,833 cities | 216 s | [📖 notes](08-shipping/README.md) |
-| 09–11 | | Payment, Dispatch, Frontend | ⏭️ Planned | | |
+| 09 | [09-payment.sh](09-payment/09-payment.sh) | Payment (Python + gunicorn) | ✅ Done: `/health` rabbitmq true | 18 s | [📖 notes](09-payment/README.md) |
+| 10 | [10-frontend.sh](10-frontend/10-frontend.sh) | Frontend (Nginx reverse proxy) | ✅ Done: shop live, all 5 `/api/*/health` 200, **3 orders placed** | not recorded | [📖 notes](10-frontend/README.md) |
+| 11 | | Dispatch | ⏭️ Server created (`dispatch` → 172.31.11.148), script next | | |
 | - | | `common.sh` (shared functions) | ⏭️ Planned | | |
 
 ---
@@ -300,6 +306,9 @@ Each script is explained block by block in its folder's `README.md` (e.g. [05-ca
 | cart | `curl localhost:8080/health` | `{"app":"OK","redis":true}` |
 | shipping | `curl localhost:8080/actuator/health` | `"status":"UP"` (db UP) |
 | shipping | `curl localhost:8080/count` | `948833` |
+| payment | `curl localhost:8080/health` | `{"app":"OK","rabbitmq":true}` |
+| frontend | `curl http://abhignadevops.store/api/<service>/health` (from anywhere) | `200` for all 5 apps |
+| all | Place an order in the browser | It shows in **Order history** |
 
 ![catalogue health and products](docs/images/handson/05-catalogue-run-health-products.png)
 
@@ -319,6 +328,9 @@ Each script is explained block by block in its folder's `README.md` (e.g. [05-ca
 | Route 53 got the literal text `$IP` | Variables don't expand inside single quotes | `'"Value": "'$IP'"'` |
 | `script completed in  seconds` | `$seconds` instead of the built-in `$SECONDS` | Bash is case-sensitive |
 | Old AMI / SG IDs from class not found | IDs belong to another account or were deregistered | Use my own AMI ID and SG **names** |
+| Payment needs Python ≥ 3.10, RHEL 9 has 3.9 | gunicorn 26 | `python3.14` next to the system Python + a venv in `/app/.venv` |
+| Renamed a script, old file stayed on GitHub | `mv` + `git add <new>` never staged the delete | `git rm <old>`; next time `git mv` |
+| `sed` on the repo template, then `cp` | Changes a tracked file → `git pull` refuses later | `cp` first, `sed` the copy |
 
 All 25 with details: [docs/troubleshooting.md](docs/troubleshooting.md)
 
@@ -368,7 +380,8 @@ Full guide: [docs/debugging-guide.md](docs/debugging-guide.md)
 
 - [x] `06-user.sh`, `07-cart.sh`
 - [x] `08-shipping.sh`
-- [ ] `09-payment.sh`, `10-dispatch.sh`, `11-frontend.sh`
+- [x] `09-payment.sh`, `10-frontend.sh`: shop live, 3 orders placed end to end
+- [ ] `11-dispatch.sh` (server already created)
 - [ ] Move the shared header and functions into `common.sh`
 - [ ] Practice debugging by breaking things on purpose (SG rule, stopped service, wrong DNS name)
 
@@ -378,7 +391,7 @@ Full guide: [docs/debugging-guide.md](docs/debugging-guide.md)
 
 | Doc | What's inside |
 |-----|---------------|
-| [Server notes](00-common-part.md) | **One note per script**: [roboshop.sh](00-roboshop/README.md) · [mongodb](01-mongodb/README.md) · [redis](02-redis/README.md) · [mysql](03-mysql/README.md) · [rabbitmq](04-rabbitmq/README.md) · [catalogue](05-catalogue/README.md) · [user](06-user/README.md) · [cart](07-cart/README.md) · [shipping](08-shipping/README.md) |
+| [Server notes](00-common-part.md) | **One note per script**: [roboshop.sh](00-roboshop/README.md) · [mongodb](01-mongodb/README.md) · [redis](02-redis/README.md) · [mysql](03-mysql/README.md) · [rabbitmq](04-rabbitmq/README.md) · [catalogue](05-catalogue/README.md) · [user](06-user/README.md) · [cart](07-cart/README.md) · [shipping](08-shipping/README.md) · [payment](09-payment/README.md) · [frontend](10-frontend/README.md) |
 | [Scripts walkthrough](docs/scripts-walkthrough.md) | Every script explained, with run screenshots |
 | [Troubleshooting](docs/troubleshooting.md) | Problems I hit, causes, fixes |
 | [Debugging guide](docs/debugging-guide.md) | Which error → what to check, logs per server, real class errors |

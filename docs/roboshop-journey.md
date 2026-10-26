@@ -178,7 +178,14 @@ Same project, now as code. Repo: [shellscript-roboshop-v1](https://github.com/Ab
 | `03-mysql.sh` | MySQL 8.4 + root password + login check | **40 s** |
 | `04-rabbitmq.sh` | Repos + RabbitMQ + app user (idempotent) | **36 s** |
 | `05-catalogue.sh` | Node.js, app user, code, service file, load products | **63 s** |
-| user, cart, shipping, payment, dispatch, frontend | next | – |
+| `06-user.sh` | Node.js, sessions in Redis, users in MongoDB | **109 s** |
+| `07-cart.sh` | Node.js, cart in Redis, prices from catalogue | **99 s** |
+| `08-shipping.sh` | Java 25 + Maven build, 948,833 cities loaded once | **216 s** |
+| `09-payment.sh` | Python 3.14 + venv + gunicorn, orders to RabbitMQ | **18 s** |
+| `10-frontend.sh` | Nginx 1.26 reverse proxy for `/api/*`, `nginx -t` before restart | – |
+| dispatch | server created, script next | – |
+
+**Result (2026-10-26):** shop live at `http://abhignadevops.store`, all 5 `/api/*/health` = 200 from the internet, **3 orders placed** end to end (recorded on video).
 
 **What every script has:**
 

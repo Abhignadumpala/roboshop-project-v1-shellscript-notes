@@ -15,7 +15,9 @@ Each script has **its own folder** (`01-mongodb/`, `05-catalogue/`, ...) with th
 | 6 | [06-user.sh](06-user/README.md) | user | 8080 | ✅ 109 s |
 | 7 | [07-cart.sh](07-cart/README.md) | cart | 8080 | ✅ 99 s |
 | 8 | [08-shipping.sh](08-shipping/README.md) | shipping | 8080 | ✅ 216 s, 948,833 cities |
-| 6, 7, 9–11 | user, cart, payment, dispatch, frontend | | | next |
+| 9 | [09-payment.sh](09-payment/README.md) | payment | 8080 | ✅ 18 s, rabbitmq true |
+| 10 | [10-frontend.sh](10-frontend/README.md) | frontend | 80 | ✅ shop live, 3 orders placed |
+| 11 | dispatch | dispatch | – | next |
 
 ---
 
