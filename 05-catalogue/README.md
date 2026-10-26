@@ -150,6 +150,8 @@ fi
 
 **Why:** the app must not run as root (safer). The check makes a 2nd run not fail (**idempotent**).
 
+📖 Line-by-line explanation with a flow diagram: [Create the app user](../00-common-part.md#create-the-app-user-every-app-script-catalogue-user-cart-shipping-payment-)
+
 ### 7. Download the app code
 
 ```bash
