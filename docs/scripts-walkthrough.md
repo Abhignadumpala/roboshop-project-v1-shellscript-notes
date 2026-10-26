@@ -67,15 +67,15 @@
 
 | File | Runs on | Does |
 |------|---------|------|
-| [roboshop.sh](../roboshop.sh) | Laptop (needs AWS CLI) | Creates EC2 instances + updates Route 53 |
-| [01-mongodb.sh](../01-mongodb.sh) | MongoDB server (as root) | Installs and configures MongoDB 7.0 |
-| [mongo.repo](../mongo.repo) | Copied by `01-mongodb.sh` and `05-catalogue.sh` | Tells `dnf` where to download MongoDB 7.0 (server, and the `mongosh` client) |
-| [02-redis.sh](../02-redis.sh) | Redis server | Installs Redis 7, opens it to other servers |
-| [03-mysql.sh](../03-mysql.sh) | MySQL server | Installs MySQL 8.4, sets the root password, checks the login |
-| [04-rabbitmq.sh](../04-rabbitmq.sh) | RabbitMQ server | Installs RabbitMQ, creates the `roboshop` app user (skips if it exists) |
-| [rabbitmq.repo](../rabbitmq.repo) | Copied by `04-rabbitmq.sh` | Erlang + RabbitMQ repos (not in RHEL) |
-| [05-catalogue.sh](../05-catalogue.sh) | Catalogue server | Node.js 24 app: user, code, npm, systemd service, product data |
-| [catalogue.service](../catalogue.service) | Copied by `05-catalogue.sh` | systemd unit with a `DOMAIN_NAME` placeholder |
+| [roboshop.sh](../00-roboshop/roboshop.sh) | Laptop (needs AWS CLI) | Creates EC2 instances + updates Route 53 |
+| [01-mongodb.sh](../01-mongodb/01-mongodb.sh) | MongoDB server (as root) | Installs and configures MongoDB 7.0 |
+| [mongo.repo](../01-mongodb/mongo.repo) | Copied by `01-mongodb.sh` and `05-catalogue.sh` | Tells `dnf` where to download MongoDB 7.0 (server, and the `mongosh` client) |
+| [02-redis.sh](../02-redis/02-redis.sh) | Redis server | Installs Redis 7, opens it to other servers |
+| [03-mysql.sh](../03-mysql/03-mysql.sh) | MySQL server | Installs MySQL 8.4, sets the root password, checks the login |
+| [04-rabbitmq.sh](../04-rabbitmq/04-rabbitmq.sh) | RabbitMQ server | Installs RabbitMQ, creates the `roboshop` app user (skips if it exists) |
+| [rabbitmq.repo](../04-rabbitmq/rabbitmq.repo) | Copied by `04-rabbitmq.sh` | Erlang + RabbitMQ repos (not in RHEL) |
+| [05-catalogue.sh](../05-catalogue/05-catalogue.sh) | Catalogue server | Node.js 24 app: user, code, npm, systemd service, product data |
+| [catalogue.service](../05-catalogue/catalogue.service) | Copied by `05-catalogue.sh` | systemd unit with a `DOMAIN_NAME` placeholder |
 
 ## Security groups: one common SG + one SG per component
 

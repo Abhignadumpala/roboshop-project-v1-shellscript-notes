@@ -1,7 +1,7 @@
 # RoboShop Shell Scripts: Every Script Explained
 
 > Study notes for my **RoboShop** automation on AWS (frontend, 6 microservices, 4 databases) with **Bash** and the **AWS CLI**.
-> Every script is here **with its explanation right below it** (`<script>.sh.md`): the code block by block, how I ran it, how I checked it, and the problems I hit.
+> Every script has **its own folder** with the script, its config files and its explanation (`README.md`): the code block by block, how I ran it, how I checked it, and the problems I hit.
 
 | Repo | Use it for |
 |------|------------|
@@ -64,31 +64,19 @@
 
 ```
 roboshop-project-v1-shellscript-notes/
-├── 00-common-part.md      # common part of every script, explained once
-├── roboshop.sh            # laptop: create EC2 instances + Route 53 records
-├── roboshop.sh.md         #   ↳ explanation of roboshop.sh, block by block
-├── 01-mongodb.sh          # mongodb server
-├── 01-mongodb.sh.md       #   ↳ explanation of 01-mongodb.sh, block by block
-├── 02-redis.sh            # redis server
-├── 02-redis.sh.md         #   ↳ explanation of 02-redis.sh, block by block
-├── 03-mysql.sh            # mysql server
-├── 03-mysql.sh.md         #   ↳ explanation of 03-mysql.sh, block by block
-├── 04-rabbitmq.sh         # rabbitmq server
-├── 04-rabbitmq.sh.md      #   ↳ explanation of 04-rabbitmq.sh, block by block
-├── 05-catalogue.sh        # catalogue server
-├── 05-catalogue.sh.md     #   ↳ explanation of 05-catalogue.sh, block by block
-├── 06-user.sh             # user server
-├── 06-user.sh.md          #   ↳ explanation of 06-user.sh, block by block
-├── 07-cart.sh             # cart server
-├── 07-cart.sh.md          #   ↳ explanation of 07-cart.sh, block by block
-├── 08-shipping.sh         # shipping server (Java + Maven + MySQL data)
-├── 08-shipping.sh.md      #   ↳ explanation of 08-shipping.sh, block by block
-├── mongo.repo             # MongoDB 7.0 repo (server + mongosh client)
-├── rabbitmq.repo          # Erlang + RabbitMQ repos
-├── catalogue.service      # systemd unit with a DOMAIN_NAME placeholder
-├── user.service           # systemd unit: REDIS_URL + MONGO_URL
-├── cart.service           # systemd unit: REDIS_HOST + CATALOGUE_HOST
-├── shipping.service       # systemd unit: CART_ENDPOINT + DB_HOST + DB user
+├── README.md                  # this page
+├── 00-common-part.md          # the part every script shares, explained once
+├── 00-roboshop/               # laptop: create EC2 instances + Route 53 records
+│   ├── roboshop.sh
+│   └── README.md              #   ↳ explanation, block by block (GitHub shows it when you open the folder)
+├── 01-mongodb/                # 01-mongodb.sh · mongo.repo · README.md
+├── 02-redis/                  # 02-redis.sh · README.md
+├── 03-mysql/                  # 03-mysql.sh · README.md
+├── 04-rabbitmq/               # 04-rabbitmq.sh · rabbitmq.repo · README.md
+├── 05-catalogue/              # 05-catalogue.sh · catalogue.service · mongo.repo · README.md
+├── 06-user/                   # 06-user.sh · user.service · README.md
+├── 07-cart/                   # 07-cart.sh · cart.service · README.md
+├── 08-shipping/               # 08-shipping.sh · shipping.service · README.md
 └── docs/
     ├── scripts-walkthrough.md   # how every script works, line by line
     ├── troubleshooting.md       # problems I hit + fixes
@@ -99,17 +87,20 @@ roboshop-project-v1-shellscript-notes/
     └── images/
 ```
 
+> **One folder per script:** the script, the files it copies (`.service`, `.repo`) and its explanation (`README.md`). Open a folder on GitHub and the explanation shows right under the file list.
+> To **run** the scripts, use the flat [lab repo](https://github.com/Abhignadumpala/shellscript-roboshop-v1): there they sit together so `scripts_dir` finds the `.service`/`.repo` files.
+
 | File | Runs on | Does |
 |------|---------|------|
-| [roboshop.sh](roboshop.sh) | Laptop (AWS CLI) | Creates one EC2 instance per name, waits until running, UPSERTs the DNS record |
-| [01-mongodb.sh](01-mongodb.sh) | mongodb | Repo → install MongoDB 7.0 → enable/start → `bindIp 0.0.0.0` → restart |
-| [02-redis.sh](02-redis.sh) | redis | `dnf module` Redis 7 → `bind 0.0.0.0` + `protected-mode no` → enable/start |
-| [03-mysql.sh](03-mysql.sh) | mysql | MySQL 8.4 → enable/start → root password → fix `root@localhost` → **login check** |
-| [04-rabbitmq.sh](04-rabbitmq.sh) | rabbitmq | Repo → Erlang + RabbitMQ → enable/start → app user (**skips if it exists**) → permissions |
-| [05-catalogue.sh](05-catalogue.sh) | catalogue | Node.js 24 → app user → download + unzip code → `npm install` → systemd service → load products |
-| [06-user.sh](06-user.sh) | user | Node.js 24 → app user → code → `npm install` → `user.service` (Redis + MongoDB) → restart |
-| [07-cart.sh](07-cart.sh) | cart | Node.js 24 → app user → code → `npm install` → `cart.service` (Redis + catalogue) → restart |
-| [08-shipping.sh](08-shipping.sh) | shipping | Java 25 + Maven → `mvn clean package` → MySQL client → cities loaded **only if count is 0** → app DB user → `shipping.service` → restart |
+| [roboshop.sh](00-roboshop/roboshop.sh) | Laptop (AWS CLI) | Creates one EC2 instance per name, waits until running, UPSERTs the DNS record |
+| [01-mongodb.sh](01-mongodb/01-mongodb.sh) | mongodb | Repo → install MongoDB 7.0 → enable/start → `bindIp 0.0.0.0` → restart |
+| [02-redis.sh](02-redis/02-redis.sh) | redis | `dnf module` Redis 7 → `bind 0.0.0.0` + `protected-mode no` → enable/start |
+| [03-mysql.sh](03-mysql/03-mysql.sh) | mysql | MySQL 8.4 → enable/start → root password → fix `root@localhost` → **login check** |
+| [04-rabbitmq.sh](04-rabbitmq/04-rabbitmq.sh) | rabbitmq | Repo → Erlang + RabbitMQ → enable/start → app user (**skips if it exists**) → permissions |
+| [05-catalogue.sh](05-catalogue/05-catalogue.sh) | catalogue | Node.js 24 → app user → download + unzip code → `npm install` → systemd service → load products |
+| [06-user.sh](06-user/06-user.sh) | user | Node.js 24 → app user → code → `npm install` → `user.service` (Redis + MongoDB) → restart |
+| [07-cart.sh](07-cart/07-cart.sh) | cart | Node.js 24 → app user → code → `npm install` → `cart.service` (Redis + catalogue) → restart |
+| [08-shipping.sh](08-shipping/08-shipping.sh) | shipping | Java 25 + Maven → `mvn clean package` → MySQL client → cities loaded **only if count is 0** → app DB user → `shipping.service` → restart |
 
 ---
 
@@ -117,15 +108,15 @@ roboshop-project-v1-shellscript-notes/
 
 | # | Script | Component | Status | Run time (measured) | Explained (block by block) |
 |---|--------|-----------|--------|---------------------|----------------------------|
-| 00 | [roboshop.sh](roboshop.sh) | EC2 + Route 53 | ✅ Done | - | [📖 notes](roboshop.sh.md) |
-| 01 | [01-mongodb.sh](01-mongodb.sh) | MongoDB 7.0 | ✅ Done | - | [📖 notes](01-mongodb.sh.md) |
-| 02 | [02-redis.sh](02-redis.sh) | Redis 7 | ✅ Done | 21 s | [📖 notes](02-redis.sh.md) |
-| 03 | [03-mysql.sh](03-mysql.sh) | MySQL 8.4.11 | ✅ Done (+ root@localhost bug found and fixed) | 40 s | [📖 notes](03-mysql.sh.md) |
-| 04 | [04-rabbitmq.sh](04-rabbitmq.sh) | RabbitMQ | ✅ Done, re-run safe | 36 s (re-run: 86 s, SKIPPING the user) | [📖 notes](04-rabbitmq.sh.md) |
-| 05 | [05-catalogue.sh](05-catalogue.sh) | Catalogue | ✅ Done: `/health` OK, 11 products, re-run safe | 63 s | [📖 notes](05-catalogue.sh.md) |
-| 06 | [06-user.sh](06-user.sh) | User | ✅ Done: `/health` mongo + redis true | 109 s | [📖 notes](06-user.sh.md) |
-| 07 | [07-cart.sh](07-cart.sh) | Cart | ✅ Done: `/health` redis true, telnet catalogue:8080 Connected | 99 s | [📖 notes](07-cart.sh.md) |
-| 08 | [08-shipping.sh](08-shipping.sh) | Shipping (Java + MySQL data) | ✅ Done: health UP (db UP), 948,833 cities | 216 s | [📖 notes](08-shipping.sh.md) |
+| 00 | [roboshop.sh](00-roboshop/roboshop.sh) | EC2 + Route 53 | ✅ Done | - | [📖 notes](00-roboshop/README.md) |
+| 01 | [01-mongodb.sh](01-mongodb/01-mongodb.sh) | MongoDB 7.0 | ✅ Done | - | [📖 notes](01-mongodb/README.md) |
+| 02 | [02-redis.sh](02-redis/02-redis.sh) | Redis 7 | ✅ Done | 21 s | [📖 notes](02-redis/README.md) |
+| 03 | [03-mysql.sh](03-mysql/03-mysql.sh) | MySQL 8.4.11 | ✅ Done (+ root@localhost bug found and fixed) | 40 s | [📖 notes](03-mysql/README.md) |
+| 04 | [04-rabbitmq.sh](04-rabbitmq/04-rabbitmq.sh) | RabbitMQ | ✅ Done, re-run safe | 36 s (re-run: 86 s, SKIPPING the user) | [📖 notes](04-rabbitmq/README.md) |
+| 05 | [05-catalogue.sh](05-catalogue/05-catalogue.sh) | Catalogue | ✅ Done: `/health` OK, 11 products, re-run safe | 63 s | [📖 notes](05-catalogue/README.md) |
+| 06 | [06-user.sh](06-user/06-user.sh) | User | ✅ Done: `/health` mongo + redis true | 109 s | [📖 notes](06-user/README.md) |
+| 07 | [07-cart.sh](07-cart/07-cart.sh) | Cart | ✅ Done: `/health` redis true, telnet catalogue:8080 Connected | 99 s | [📖 notes](07-cart/README.md) |
+| 08 | [08-shipping.sh](08-shipping/08-shipping.sh) | Shipping (Java + MySQL data) | ✅ Done: health UP (db UP), 948,833 cities | 216 s | [📖 notes](08-shipping/README.md) |
 | 09–11 | | Payment, Dispatch, Frontend | ⏭️ Planned | | |
 | - | | `common.sh` (shared functions) | ⏭️ Planned | | |
 
@@ -289,7 +280,7 @@ echo "$(timestamp) [INFO] script completed in $SECONDS seconds" | tee -a $logs_f
 | **Placeholders** | `mongodb.DOMAIN_NAME` in the unit file + `sed -i "s/DOMAIN_NAME/$domain_name/"` on the **copy** | Domain set in one variable; repo file stays unchanged |
 | **Validate the result** | `mysql -uroot -p... -e "SELECT VERSION();"` after setting the password | An exit code of 0 doesn't prove the password works (see bug below) |
 
-Each script is explained block by block in `<script>.sh.md`, right below it (e.g. [05-catalogue.sh.md](05-catalogue.sh.md)). Common part: [00-common-part.md](00-common-part.md)
+Each script is explained block by block in its folder's `README.md` (e.g. [05-catalogue/](05-catalogue/README.md)). Common part: [00-common-part.md](00-common-part.md)
 
 ---
 
@@ -387,7 +378,7 @@ Full guide: [docs/debugging-guide.md](docs/debugging-guide.md)
 
 | Doc | What's inside |
 |-----|---------------|
-| [Server notes](00-common-part.md) | **One note per script**: [roboshop.sh](roboshop.sh.md) · [mongodb](01-mongodb.sh.md) · [redis](02-redis.sh.md) · [mysql](03-mysql.sh.md) · [rabbitmq](04-rabbitmq.sh.md) · [catalogue](05-catalogue.sh.md) · [user](06-user.sh.md) · [cart](07-cart.sh.md) · [shipping](08-shipping.sh.md) |
+| [Server notes](00-common-part.md) | **One note per script**: [roboshop.sh](00-roboshop/README.md) · [mongodb](01-mongodb/README.md) · [redis](02-redis/README.md) · [mysql](03-mysql/README.md) · [rabbitmq](04-rabbitmq/README.md) · [catalogue](05-catalogue/README.md) · [user](06-user/README.md) · [cart](07-cart/README.md) · [shipping](08-shipping/README.md) |
 | [Scripts walkthrough](docs/scripts-walkthrough.md) | Every script explained, with run screenshots |
 | [Troubleshooting](docs/troubleshooting.md) | Problems I hit, causes, fixes |
 | [Debugging guide](docs/debugging-guide.md) | Which error → what to check, logs per server, real class errors |

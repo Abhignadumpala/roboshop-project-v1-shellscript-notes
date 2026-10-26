@@ -1,6 +1,6 @@
 # 01-mongodb.sh: MongoDB Server
 
-[← Project README](README.md) · [Common part of every script](00-common-part.md) · [Scripts walkthrough](docs/scripts-walkthrough.md)
+[← Project README](../README.md) · [Common part of every script](../00-common-part.md) · [Scripts walkthrough](../docs/scripts-walkthrough.md)
 
 ## What this server does
 
@@ -44,7 +44,7 @@ mkdir -p $logs_folder
 validate(){ ... }
 ```
 
-**What it does:** settings, root check, log folder, `validate` helper. Explained in the [server notes index](00-common-part.md#the-common-part-top-of-every-script). (This first script has no `timestamp` yet.)
+**What it does:** settings, root check, log folder, `validate` helper. Explained in the [server notes index](../00-common-part.md#the-common-part-top-of-every-script). (This first script has no `timestamp` yet.)
 
 ### 5. Add the MongoDB repo
 
